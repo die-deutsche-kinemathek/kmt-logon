@@ -189,7 +189,7 @@ class mozprofile:
         # ca-cert setzen geht nur global ?!
         ldap.set_option(ldap.OPT_X_TLS_CACERTFILE,
           "%s.ad.kinemathek.de\\" % self.vars["logonserver"] +
-          "netlogon\\settings\\certs\\kmt-ldap-ca-crt.pem")
+          "netlogon\\kmt-logon\\settings\\certs\\kmt-ldap-ca-crt.pem")
         try:
             # lc = ldap.initialize(ls, trace_level=10)
             lc = ldap.initialize(ls)
@@ -358,17 +358,6 @@ class mozprofile:
                       % (cu_path, cert_path))
                     subprocess.call([cu_path, "-A", "-d", self.pp, "-i", \
                       cert_path, "-n", name, "-t", "P,,"])
-                    if len(cert.split()) > 1:
-                        cert_stuff = cert.split()
-                        log.debug(u"        … erstelle ausnahmeregelung, " +
-                          u"zertifikat %s ist gültig für server %s" %
-                          (cert_stuff[0], cert_stuff[1]))
-                        if cert_stuff[3].lower() in new_overrides:
-                            log.trace(u"        … existierte bereits")
-                        else:
-                            log.trace(u"        … ist neu, wird hinzugefügt")
-                            new_overrides[cert_stuff[3].lower()] = \
-                              "\t".join(cert_stuff[1:])
             log.debug(u"    … blacklist bearbeiten")
             try:
                 bl = open(self.certs_bl, "r")
@@ -410,14 +399,27 @@ class mozprofile:
                         del(new_overrides[fp])
             log.trace(u"        … neue ausnahmeregelungen: %s" % 
               str(new_overrides))
-            log.debug(u"        … schreibe neue ausnahmeregelungen")
+            log.debug(u"        … schreibe neue ausnahmeregelungen für " +
+              u"certs, bei denen cn und wirklicher hostname nicht über" +
+              u"einstimmen")
             try:
                 cor = open(of, "w")
             except IOError:
                 log.error(u"    %s kann nicht gelesen werden" % of)
                 sys.exit(1)
-            for key, value in new_overrides.iteritems():
-                cor.write(value)
+            # mal sehen
+            print "new_overrides: " + repr(new_overrides)
+            print "good_certs: " + repr(good_certs)
+            print "bad_certs: " + repr(bad_certs)
+            # sys.exit(1)
+            for cert in good_certs:
+                if not cert.startswith("#"):
+                    if len(cert.split()) > 1:
+                        cert_stuff = cert.split()
+                        log.debug(u"        … erstelle ausnahmeregelung, " +
+                          u"zertifikat %s ist gültig für server %s" %
+                          (cert_stuff[0], cert_stuff[1]))
+                        cor.write("\t".join(cert_stuff[1:]) + "\n")
             cor.close()
             if self.__class__.__name__ == "tbprofile":
                 log.debug(u"  … passwörter für thunderbird")
@@ -549,8 +551,9 @@ except KeyError:
     log.critical("… %LOGONSERVER% ist nicht definiert ?!")   
     sys.exit(1)
 # logonserver = "//stone"
-settings_path = logonserver + ".ad.kinemathek.de\\netlogon\\settings"
-tools_path = logonserver + ".ad.kinemathek.de\\netlogon\\tools"
+settings_path = logonserver + ".ad.kinemathek.de\\netlogon\\kmt-logon" + \
+  "\\settings"
+tools_path = logonserver + ".ad.kinemathek.de\\netlogon\\kmt-logon\\tools"
 ff_settings = "firefox-settings.ini"
 tb_settings = "thunderbird-settings.ini"
 pw = ""
