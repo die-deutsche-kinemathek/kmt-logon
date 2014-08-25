@@ -1,0 +1,4 @@
+# stylite
+stylite-20140412.pem imap.deutsche-kinemathek.de:143 OID.2.16.840.1.101.3.4.2.1  FA:46:81:A5:9B:FB:0A:45:D3:FA:16:69:3F:F8:A0:4E:CE:71:A9:BB:E6:B4:B2:ED:DE:F6:68:1A:C9:6A:0D:76 M   AAAAAAAAAAAAAAADAAAAPhISPzA8MQswCQYDVQQGEwJVUzEXMBUGA1UEChMOR2Vv  VHJ1c3QsIEluYy4xFDASBgNVBAMTC1JhcGlkU1NMIEN
+# globale als beispiel für import-only
+globale.pem
