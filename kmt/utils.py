@@ -194,7 +194,7 @@ def fix_cmd_unicode():
         # # if you like:
         # sys.argv = argv
 
-def setup_logger(fn="", log_instance="kmt"):
+def setup_logger(fn="", log_instance="kmt-logonv2"):
     """ logging auf der console und in ein logfile, argument: name des
         logfiles """
     # zusätzlicher log-level "trace"

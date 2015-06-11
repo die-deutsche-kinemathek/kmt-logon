@@ -5,3 +5,7 @@ globale.pem
 # stylite 20140818.pem
 stylite-20140818.pem imap.deutsche-kinemathek.de:143 OID.2.16.840.1.101.3.4.2.1  B1:C8:B5:CE:48:34:FE:37:99:EA:20:6D:AA:37:45:27:8F:6D:2E:D1:AB:90:F6:4F:35:5C:47:51:03:AC:9F:D5 M   AAAAAAAAAAAAAAADAAAAPhSxQjA8MQswCQYDVQQGEwJVUzEXMBUGA1UEChMOR2Vv  VHJ1c3QsIEluYy4xFDASBgNVBAMTC1JhcGlkU1NMIENB
 stylite-20140818.pem smtp.deutsche-kinemathek.de:25 OID.2.16.840.1.101.3.4.2.1  B1:C8:B5:CE:48:34:FE:37:99:EA:20:6D:AA:37:45:27:8F:6D:2E:D1:AB:90:F6:4F:35:5C:47:51:03:AC:9F:D5 M   AAAAAAAAAAAAAAADAAAAPhSxQjA8MQswCQYDVQQGEwJVUzEXMBUGA1UEChMOR2Vv  VHJ1c3QsIEluYy4xFDASBgNVBAMTC1JhcGlkU1NMIENB
+# certs der lokalen ads
+kmt-ldap-sarandon.ad.kinemathek.de-crt.pem
+kmt-ldap-scorsese.ad.kinemathek.de-crt.pem
+kmt-ldap-swank.ad.kinemathek.de-crt.pem
