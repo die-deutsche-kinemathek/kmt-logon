@@ -117,7 +117,10 @@ class mozprofile:
             self.log.debug(u"    … ergebnis: dn: {}, attrs: {}".format(dn, attrs))
             self.env["cn_from_ldap"] = attrs["cn"][0]
             self.env["dn_from_ldap"] = attrs["distinguishedName"][0]
-            self.env["tel_from_ldap"] = attrs["telephoneNumber"][0]
+            try:
+                self.env["tel_from_ldap"] = attrs["telephoneNumber"][0]
+            except KeyError:
+                self.env["tel_from_ldap"] = "+49 30/300 903 0"
             self.env["mail_from_ldap"] = attrs["mail"][0]
             self.env["displayname_from_ldap"] = attrs["displayName"][0]
         lc.unbind_s()
@@ -350,7 +353,8 @@ class mozprofile:
     def rename_profile(self):
         """ moved das komplette profil um """
         self.log.info(u" … altes profil wird umbenannt")
-        self.backup(self.pp)
+        self.backup(os.path.normpath(u"{}/{}/".format(self.env["appdata"],
+          self.profile_path)))
 
 
     def backup(self, name):
@@ -410,7 +414,7 @@ class tbprofile(mozprofile):
     """ profil für thunderbird """
     def __init__(self, settings_path, tools_path, ini_file):
         # __init__ der eltern-klasse
-        self.log = logging.getLogger("kmt-logonv2.tbprofile")
+        self.log = logging.getLogger("kmt-logonv2.tb")
         self.log.info(u"… tbprofile.__init__")
         mozprofile.__init__(self, settings_path, tools_path, ini_file) 
         self.profile_path = os.path.normpath("Thunderbird/")
@@ -421,14 +425,11 @@ class tbprofile(mozprofile):
 
 class ffprofile(mozprofile):
     """ profil für firefox """
-    def __init__(self):
+    def __init__(self, settings_path, tools_path, ini_file):
+        self.log = logging.getLogger("kmt-logonv2.ff")
         self.log.info(u"… ffprofile.__init__")
-        # __init__ der eltern-klasse
-        mozprofile.__init__(self)
-        self.profile_path = "Mozilla\\Firefox\\"
-        self.exe_path = "{}\\Mozilla Firefox\\firefox.exe".\
-          format(self.env["programfiles(x86)"])
-        self.ini_file = args.path_settings + "\\" + args.moz_ff_settings
-        self.certs_wl = args.path_settings + "\\certs\\ff-whitelist"
-        self.certs_bl = args.path_settings + "\\certs\\ff-blacklist"
-        self.content = {}
+        mozprofile.__init__(self, settings_path, tools_path, ini_file)
+        self.profile_path = os.path.normpath("Mozilla/Firefox/")
+        self.exe_path = os.path.normpath("{}/Mozilla Firefox/" \
+          "firefox.exe".format(self.env["programfiles(x86)"]))
+        self.ini_file = os.path.normpath(settings_path + "/" + ini_file)

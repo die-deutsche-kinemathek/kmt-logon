@@ -74,7 +74,7 @@ elif args.verbose > 1:
 log.debug(u"… thunderbird")
 tbp = kmt.moz_profiles.tbprofile(settings_path, tools_path, tb_settings)
 if args.moz_tb_force_new:
-    tbp.rename()
+    tbp.rename_profile()
 if not tbp.exists():
     tbp.create()
 tbp.query_ldap()
@@ -85,28 +85,13 @@ tbp.done()
 
 # firefox …
 log.debug(u"… firefox")
-# ffp = ffprofile()
-# if not ffp.check_profile():
-#     ffp.create_profile()
-# if args.moz_ff_force_new:
-#     ffp.rename_profile()
-#     ffp.create_profile()
-# if ffp.is_new or args.moz_ff_update:
-#     ffp.load_profile()
-#     ffp.update_profile("mandatory")
-#     if ffp.is_new:
-#         ffp.update_profile("optional")
-# ffp.done()
-
-
-# print(ffp.get_value("browser.startup.homepage"))
-# print(ffp.get_value("browser.download.debug"))
-# ffp.set_value("browser.download.debug", "true")
-# ffp.set_value("browser.startup.homepage", "\"http://www.xkcd.org\"", force=True)
-
-# thunderbird …
-# print(tbp.get_value("signon.debug"))
-# print(tbp.get_value("mailnews.tags.$labe1.tag"))
-# tbp.set_value("signon.debug", "true")
-# tbp.set_value("mailnews.tags.$label1.tag", "\"scheißegal\"", force=True)
-
+ffp = kmt.moz_profiles.ffprofile(settings_path, tools_path, ff_settings)
+if args.moz_ff_force_new:
+    ffp.rename_profile()
+if not ffp.exists():
+    ffp.create()
+ffp.query_ldap()
+ffp.change_settings("mandatory")
+if ffp.is_new:
+    ffp.change_settings("optional")
+ffp.done()
