@@ -31,7 +31,8 @@ class mozprofile:
                           format(profile))
             else: 
                 profile = config.get(profiles[0], "Path")
-                self.log.debug(u"  … pfad zum einzigen profil: {}".format(profile))
+                self.log.debug(u"  … pfad zum einzigen profil: {}".\
+                  format(profile))
             self.env["profile_path"] = os.path.normpath(path + "/" + profile)
             self.env["prefs"] = os.path.normpath(self.env["profile_path"] +\
               "/prefs.js")
@@ -57,15 +58,17 @@ class mozprofile:
           self.env["username"]])
         if not self.exists():
             if not been_here:
-                self.log.debug(u"  … uh-oh - das neu angelegte profil ist nicht " +
-                  "das default-profil. als letzte rettung wird profiles.ini " +
-                  "umbenannt und ein weiteres neues profil angelegt.")
+                self.log.debug(u"  … uh-oh - das neu angelegte profil ist " +
+                  "nicht das default-profil. als letzte rettung wird " +
+                  "profiles.ini umbenannt und ein weiteres neues profil "+
+                  "angelegt.")
                 self.backup(os.path.normpath(u"{}/{}/{}".\
                   format(self.env["appdata"], self.profile_path,
                   "/profiles.ini")))
                 self.create(been_here = True)
             else:
-                self.log.error(u"  … das anlegen eines neuen profils ging schief! ")
+                self.log.error(u"  … das anlegen eines neuen profils ging " +
+                  "schief! ")
                 sys.exit(1)
         self.is_new = True
 
@@ -312,7 +315,7 @@ class mozprofile:
                     key = pref.group(1)
                     value = pref.group(2).strip("\n\r")
                     self.log.trace(u"    … ist relevant, key: {}, value: {}".\
-                      format(key, value.decode("utf-8")))
+                      format(key.decode("utf-8"), value.decode("utf-8")))
                     self.content[key] = value
             self.log.trace(u"    … done. geparste werte: {}".format(self.content))
             self.loaded = True
@@ -343,7 +346,8 @@ class mozprofile:
                     value = str(self.content[key].decode("utf-8")).strip()
                 # fh.write("""user_pref("%s", %s);\n""" % (key, 
                 #  value.decode("utf-8")))
-                fh.write(u"""user_pref("{}", {});\n""".format(key, value.decode("utf-8")))
+                fh.write(u"""user_pref("{}", {});\n""".\
+                  format(key.decode("utf-8"), value.decode("utf-8")))
             fh.close()
         except IOError:
             self.log.error(u"  … profildatei {} ist nicht schreibbar!".\
