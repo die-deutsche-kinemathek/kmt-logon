@@ -321,6 +321,20 @@ class mozprofile:
             self.loaded = True
 
 
+        def do_hacks(mode):
+            """ wundertüte für hässliche hacks / warum auch immer nötige
+                anpassungen, die sich nicht per templating erledigen lassen.
+                bitte sparsam verwenden. """
+            self.log.info(u"  … hässliche häcks")
+            # hack für mail.accountmanager.accounts="account1,account2" im
+            # thunderbird-profil - das darf nur beim neuanlegen eines profils
+            # gesetzt werden
+            if self.__class__.__name__ == "tbprofile" and self.is_new and \
+              mode == "mandatory":
+                self.log.debug(u"    … mail.accountmanager.accounts")
+                self.content["mail.accountmanager.accounts"] = \
+                  "\"account1,account2\""
+
         self.log.info(u"… mozprofile.change_settings({})".format(mode))
         if not self.loaded:
             load_profile()
@@ -332,6 +346,7 @@ class mozprofile:
         if mode == "optional":
             self.log.info(u"  … optionale einstellungen")
             settings_from_file("optional")
+        do_hacks(mode)
 
 
     def save_profile(self):
