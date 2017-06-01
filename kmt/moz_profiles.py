@@ -382,7 +382,7 @@ class mozprofile:
         try:
             self.log.debug(u"  … umbennen von {} nach {}".format(name, name_new))
             os.rename(name, name_new)
-        except IOError:
+        except (IOError,WindowsError):
             self.log.error(u"  … umbennen von {} nach {} ging schief".\
               format(name, name_new))
             sys.exit(1)
@@ -405,7 +405,7 @@ class mozprofile:
         self.loaded = False      # wurde ein existierendes profil schon geladen?
         self.is_dirty = False    # gibt es änderungen im profil?
         self.content = {}        # profildaten       
-        self.env = {}            # variablen aus dem environmen
+        self.env = {}            # variablen aus dem environment
         self.settings_path = settings_path.rstrip("\\/")
         self.tools_path = tools_path.rstrip("\\/")
         self.ini_file = ini_file
@@ -416,7 +416,8 @@ class mozprofile:
         # werte aus dem environment holen - welche_r nutzer_in wird bearbeitet,
         # welche server werden gefragt usw.
         self.log.debug(u"  … hole relevante daten aus dem environment")
-        env_vars = ["appdata", "username", "logonserver", "programfiles(x86)"]
+        env_vars = ["appdata", "username", "logonserver", "programfiles(x86)",
+          "programw6432"]
         for key in env_vars:
             self.log.trace(u"    … variable: {}".format(key))
             try:
@@ -450,5 +451,5 @@ class ffprofile(mozprofile):
         mozprofile.__init__(self, settings_path, tools_path, ini_file)
         self.profile_path = os.path.normpath("Mozilla/Firefox/")
         self.exe_path = os.path.normpath("{}/Mozilla Firefox/" \
-          "firefox.exe".format(self.env["programfiles(x86)"]))
+          "firefox.exe".format(self.env["programw6432"]))
         self.ini_file = os.path.normpath(settings_path + "/" + ini_file)
