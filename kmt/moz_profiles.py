@@ -58,16 +58,16 @@ class mozprofile:
           self.env["username"]])
         if not self.exists():
             if not been_here:
-                self.log.debug(u"  … uh-oh - das neu angelegte profil ist " +
-                  "nicht das default-profil. als letzte rettung wird " +
-                  "profiles.ini umbenannt und ein weiteres neues profil "+
+                self.log.debug(u"  … uh-oh - das neu angelegte profil ist "
+                  "nicht das default-profil. als letzte rettung wird "
+                  "profiles.ini umbenannt und ein weiteres neues profil "
                   "angelegt.")
                 self.backup(os.path.normpath(u"{}/{}/{}".\
                   format(self.env["appdata"], self.profile_path,
                   "/profiles.ini")))
                 self.create(been_here = True)
             else:
-                self.log.error(u"  … das anlegen eines neuen profils ging " +
+                self.log.error(u"  … das anlegen eines neuen profils ging " 
                   "schief! ")
                 sys.exit(1)
         self.is_new = True
@@ -76,16 +76,16 @@ class mozprofile:
     def query_ldap(self):
         """ liest relevante persönliche daten aus dem ad-ldap """
         self.log.info(u"… mozprofile.query_ldap()")
-        ls = "ldap://{}.ad.kinemathek.de".format(self.env["logonserver_name"])
+        ls = "ldap://{}.{}".format(self.env["logonserver_name"],
+          self.domain_name)
         self.log.debug(u"  … hole relevante daten aus dem ldap: {}".format(ls))
         # ca-cert setzen geht nur global ?!
         ldap.set_option(ldap.OPT_X_TLS_CACERTFILE, os.path.normpath(
-          self.settings_path + "/certs/kmt-ldap-ca-crt.pem"))
+          self.settings_path + "/certs/" + self.ldap_settings["cert"]))
         try:
-            # lc = ldap.initialize(ls, trace_level=10)
             lc = ldap.initialize(ls)
         except Exception as e:
-            self.log.error(u"  … kann keine verbindung zu {ls} aufbauen: {e}".\
+            self.log.error(u"  … kann keine verbindung zu {} aufbauen: {}".\
               format(ls, e))
             sys.exit(1)
         lc.set_option(ldap.OPT_X_TLS_REQUIRE_CERT, ldap.OPT_X_TLS_DEMAND)
@@ -94,18 +94,17 @@ class mozprofile:
         try:
             lc.start_tls_s()
         except Exception as e:
-            self.log.error(u"  … kann verbindung zu {ls} nicht per tls absichern:" +
-              "{e}".format(ls, e))
+            self.log.error(u"  … kann verbindung zu {} nicht per tls "
+              "absichern: {}".format(ls, e))
             sys.exit(1)
         try:
-            # user = "{}@ad.kinemathek.de".format(self.vars["username"])
-            lc.bind_s(self.ldap_user, self.ldap_pw)
+            lc.bind_s(self.ldap_settings["user"], self.ldap_settings["pw"])
         except Exception as e:
             self.log.error(u"  … konnte {} nicht gegen {} authentifizieren!".\
-              format(self.ldap_user, ls))
+              format(self.ldap_settings["user"], ls))
             sys.exit(1)
         self.log.trace(u"    … suche nach: {}".format(self.env["username"]))
-        result = lc.search_s("ou=kmt-users,dc=ad,dc=kinemathek,dc=de",
+        result = lc.search_s(self.ldap_settings["base_dn"],
           ldap.SCOPE_SUBTREE, "uid={}".format(self.env["username"]), 
           ["cn", "telephoneNumber", "displayname", "mail",
           "distinguishedname"])
@@ -123,7 +122,7 @@ class mozprofile:
             try:
                 self.env["tel_from_ldap"] = attrs["telephoneNumber"][0]
             except KeyError:
-                self.env["tel_from_ldap"] = "+49 30/300 903 0"
+                self.env["tel_from_ldap"] = self.moz-phone_def
             self.env["mail_from_ldap"] = attrs["mail"][0]
             self.env["displayname_from_ldap"] = attrs["displayName"][0]
         lc.unbind_s()
@@ -135,7 +134,6 @@ class mozprofile:
     def change_settings(self, mode):
         """ liest daten aus einem vorhandenen profil und ersetzt diese, falls
             nötig. hier werden außerdem zertifikate verarztet """
-
 
         def settings_from_file(what):
             """ liest einstellungen aus ini_file """
@@ -154,12 +152,12 @@ class mozprofile:
                     for self.item in self.ini.items(what):
                         set_value(*self.item, force = force_settings)
                 else:
-                    self.log.info("      … der abschnitt {} fehlt!".format(what))
+                    self.log.info("      … der abschnitt {} fehlt!".\
+                      format(what))
             else:
                 self.log.error(u"    … datei {} ist nicht lesbar!".\
                   format(self.ini_file))
                 sys.exit(1)
-
 
         def get_value(key):
             """ liefert den wert für key aus dem profil zurück """
@@ -168,7 +166,6 @@ class mozprofile:
             except KeyError:
                 value = None
             return(value)
-
 
         def set_value(key, value, force=False):
             """ schreibt einen key/value-eintrag in das profil, wenn dieser
@@ -198,11 +195,9 @@ class mozprofile:
                 self.content[key] = new_value
                 self.is_dirty = True
 
-
         def clear_value(key):
             """ löscht den wert key aus dem profil """
             self.content.pop(key, None)
-
 
         def do_certs():
             """ zertifikats-handling """
@@ -220,8 +215,8 @@ class mozprofile:
                 override_bl = certstuff.items("certs-override-blacklist")
             except ConfigParser.NoSectionError as e:
                 self.log.info(u"    … ein abschnitt fehlt: {}".format(e))
-            self.log.debug(u"      … erstelle liste der importierten certs " +\
-              "und ihrer fingerprints")
+            self.log.debug(u"      … erstelle liste der importierten certs und "
+              "ihrer fingerprints")
             certs_by_fp = {}
             certs = []
             proc = subprocess.Popen([cu, "-L", "-d", self.env["profile_path"]],
@@ -234,8 +229,8 @@ class mozprofile:
                       self.env["profile_path"], "-n", name, "-r"],
                       stdout=subprocess.PIPE)
                     fp =  hashlib.sha256(proc.communicate()[0]).hexdigest()
-                    self.log.trace(u"        … name: {}".format(name) + \
-                      " , sha256-fingerprint: {}".format(fp))
+                    self.log.trace(u"        … name: {}, sha256-fingerprint: "
+                      "{}".format(name, fp))
                     certs_by_fp[fp] = name
             certs_names = certs_by_fp.values()
             self.log.debug(u"    … hinzufügen von certs auf der whitelist")
@@ -259,11 +254,11 @@ class mozprofile:
             # referenziert werden, alles andere ist nicht verläßlich genug
             for name, fp in bl:
                 if fp in certs_by_fp:
-                    self.log.debug(u"      … lösche {}, sha256-fingerprint: {}".\
-                      format(certs_by_fp[fp], fp))
+                    self.log.debug(u"      … lösche {}, sha256-fingerprint: "
+                      "{}".format(certs_by_fp[fp], fp))
                     subprocess.call([cu, "-D", "-d", self.env["profile_path"],
                       "-n", certs_by_fp[fp]])
-            self.log.debug(u"    … overrides für certs, bei denen cn und " +\
+            self.log.debug(u"    … overrides für certs, bei denen cn und "
               u"hostname nicht übereinstimmen")
             override_file = os.path.normpath(self.env["profile_path"] +
               "/cert_override.txt")
@@ -294,7 +289,6 @@ class mozprofile:
                   format(override_file))
                 sys.exit(1)
 
-
         def load_profile():
             """ liest vorhandene profildaten """
             prefs_re = re.compile(r"^user_pref\(\"(.*?)\",\s*?(.*)\);$")
@@ -319,7 +313,6 @@ class mozprofile:
                     self.content[key] = value
             self.log.trace(u"    … done. geparste werte: {}".format(self.content))
             self.loaded = True
-
 
         def do_hacks(mode):
             """ wundertüte für hässliche hacks / warum auch immer nötige
@@ -370,7 +363,7 @@ class mozprofile:
 
             
     def rename_profile(self):
-        """ moved das komplette profil um """
+        """ benennt ein exisitierendes profil um """
         self.log.info(u" … altes profil wird umbenannt")
         self.backup(os.path.normpath(u"{}/{}/".format(self.env["appdata"],
           self.profile_path)))
@@ -398,7 +391,6 @@ class mozprofile:
 
 
 
-
     def __init__(self, settings_path, tools_path, ini_file):
         """ init für mozprofile """
         self.is_new = False      # neu angelegtes profil?
@@ -409,9 +401,6 @@ class mozprofile:
         self.settings_path = settings_path.rstrip("\\/")
         self.tools_path = tools_path.rstrip("\\/")
         self.ini_file = ini_file
-        self.ldap_user = "cn=ldapauth,ou=pseudo-nutzer,ou=kmt-users,dc=ad," \
-          "dc=kinemathek,dc=de" # pseudo-nutzer für ldap-binds
-        self.ldap_pw   = "Aeth-oh7" # password desselben        
 
         # werte aus dem environment holen - welche_r nutzer_in wird bearbeitet,
         # welche server werden gefragt usw.
@@ -432,24 +421,31 @@ class mozprofile:
 
 class tbprofile(mozprofile):
     """ profil für thunderbird """
-    def __init__(self, settings_path, tools_path, ini_file):
+    def __init__(self, settings_path, tools_path, ini_file, domain_name,
+        ldap_settings):
         # __init__ der eltern-klasse
-        self.log = logging.getLogger("kmt-logonv2.tb")
+        self.log = logging.getLogger("kmt-logon.tb")
         self.log.info(u"… tbprofile.__init__")
         mozprofile.__init__(self, settings_path, tools_path, ini_file) 
         self.profile_path = os.path.normpath("Thunderbird/")
-        self.exe_path = os.path.normpath("{}/Mozilla Thunderbird/" \
+        self.exe_path = os.path.normpath("{}/Mozilla Thunderbird/"
           "thunderbird.exe".format(self.env["programfiles(x86)"]))
         self.ini_file = os.path.normpath(settings_path + "/" + ini_file)
+        for var in ["domain_name", "ldap_settings"]:
+            setattr(self, var, eval(var))
 
 
 class ffprofile(mozprofile):
     """ profil für firefox """
-    def __init__(self, settings_path, tools_path, ini_file):
-        self.log = logging.getLogger("kmt-logonv2.ff")
+    def __init__(self, settings_path, tools_path, ini_file, domain_name,
+        ldap_settings):
+        self.log = logging.getLogger("kmt-logon.ff")
         self.log.info(u"… ffprofile.__init__")
         mozprofile.__init__(self, settings_path, tools_path, ini_file)
         self.profile_path = os.path.normpath("Mozilla/Firefox/")
-        self.exe_path = os.path.normpath("{}/Mozilla Firefox/" \
+        self.exe_path = os.path.normpath("{}/Mozilla Firefox/"
           "firefox.exe".format(self.env["programw6432"]))
         self.ini_file = os.path.normpath(settings_path + "/" + ini_file)
+        for var in ["domain_name", "ldap_settings"]:
+            setattr(self, var, eval(var))
+
