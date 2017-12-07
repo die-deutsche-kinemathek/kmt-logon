@@ -5,18 +5,46 @@
 
 import logging, re, subprocess, datetime, ldap, hashlib, os, sys, \
   ConfigParser, string, codecs
+from utils import kmt_configparser
 
 
 class mozprofile:
     """ klasse, die thunderbird- und firefox-profile abstrahiert """
 
     def exists(self):
-        """ überprüft, ob bereits eine profil-datei existiert """
+        """ überprüft, ob bereits eine profil-datei existiert und der pfad
+            zum profil den konventionen entspricht """
+
+        def fix_profilepath(prof_path, ini_section):
+            """ ändert die von firefox/thunderbird zufällig benamsten profile
+                entsprechend der konfiguration, damit bestimmte pfade vom
+                roaming ausgenommen werden können """
+            suffix = os.path.basename(os.path.normpath(prof_path))
+            self.log.trace(u"    … profil-suffix: {}".format(suffix))
+            if suffix != self.profile_name:
+                fixed_suffix = prof_path.rstrip(suffix) + self.profile_name
+                old_path = os.path.normpath(os.path.join(path, prof_path))
+                new_path = os.path.normpath(os.path.join(path, fixed_suffix))
+                self.log.debug(u"    … profilverzeichnis wird von {} in {} "
+                  "umbenannt".format(old_path, new_path))
+                os.rename(old_path, new_path)
+                self.log.debug(u"    … neuer profilpfad wird in profiles.ini"
+                  " geschrieben")
+                config.set(ini_section, "Path", fixed_suffix)
+                config.set(ini_section, "Default", 1)
+                config_file = open(os.path.normpath(path + "/profiles.ini"), "w")
+                config.write(config_file)
+                config_file.close()
+            else:
+                fixed_suffix = prof_path
+            return fixed_suffix
+
         self.log.info(u"… mozprofile.exists()")
         profile_exists = False
         path = os.path.normpath(u"{}/{}/".format(self.env["appdata"],
           self.profile_path))
-        config = ConfigParser.RawConfigParser()
+        config = kmt_configparser()
+        config.optionxform = str
         self.log.debug(u"  … suche nach profiles.ini in {}".format(path))
         if config.read(os.path.normpath(path + "/profiles.ini")):
             self.log.trace(u"    … profiles.ini gefunden")
@@ -29,12 +57,14 @@ class mozprofile:
                         profile = config.get(section, "Path")
                         self.log.debug(u"  … pfad zum default-profil: {}".\
                           format(profile))
+                        profile = fix_profilepath(profile, section)
             else: 
                 profile = config.get(profiles[0], "Path")
                 self.log.debug(u"  … pfad zum einzigen profil: {}".\
                   format(profile))
+                profile = fix_profilepath(profile, profiles[0])
             self.env["profile_path"] = os.path.normpath(path + "/" + profile)
-            self.env["prefs"] = os.path.normpath(self.env["profile_path"] +\
+            self.env["prefs"] = os.path.normpath(self.env["profile_path"] +
               "/prefs.js")
             # nachschauen, ob im profil-pfad eine prefs.js existiert
             if os.path.isfile(self.env["prefs"]):
@@ -363,7 +393,7 @@ class mozprofile:
 
             
     def rename_profile(self):
-        """ benennt ein exisitierendes profil um """
+        """ benennt ein existierendes profil um """
         self.log.info(u" … altes profil wird umbenannt")
         self.backup(os.path.normpath(u"{}/{}/".format(self.env["appdata"],
           self.profile_path)))
@@ -422,7 +452,7 @@ class mozprofile:
 class tbprofile(mozprofile):
     """ profil für thunderbird """
     def __init__(self, settings_path, tools_path, ini_file, domain_name,
-        ldap_settings):
+        ldap_settings, profile_name):
         # __init__ der eltern-klasse
         self.log = logging.getLogger("kmt-logon.tb")
         self.log.info(u"… tbprofile.__init__")
@@ -431,14 +461,14 @@ class tbprofile(mozprofile):
         self.exe_path = os.path.normpath("{}/Mozilla Thunderbird/"
           "thunderbird.exe".format(self.env["programfiles(x86)"]))
         self.ini_file = os.path.normpath(settings_path + "/" + ini_file)
-        for var in ["domain_name", "ldap_settings"]:
+        for var in ["domain_name", "ldap_settings", "profile_name"]:
             setattr(self, var, eval(var))
 
 
 class ffprofile(mozprofile):
     """ profil für firefox """
     def __init__(self, settings_path, tools_path, ini_file, domain_name,
-        ldap_settings):
+        ldap_settings, profile_name):
         self.log = logging.getLogger("kmt-logon.ff")
         self.log.info(u"… ffprofile.__init__")
         mozprofile.__init__(self, settings_path, tools_path, ini_file)
@@ -446,6 +476,6 @@ class ffprofile(mozprofile):
         self.exe_path = os.path.normpath("{}/Mozilla Firefox/"
           "firefox.exe".format(self.env["programw6432"]))
         self.ini_file = os.path.normpath(settings_path + "/" + ini_file)
-        for var in ["domain_name", "ldap_settings"]:
+        for var in ["domain_name", "ldap_settings", "profile_name"]:
             setattr(self, var, eval(var))
 

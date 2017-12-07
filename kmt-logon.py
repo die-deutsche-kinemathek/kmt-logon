@@ -62,6 +62,7 @@ ldap_settings = {"user": "cn=ldapauth,ou=pseudo-nutzer,ou=kmt-users,dc=ad,"
   "dc=kinemathek,dc=de", "pw": "fixme", "cert": "ldap-ca-crt.pem", "base_dn":
   "ou=kmt-users,dc=ad,dc=kinemathek,dc=de"}
 ad_domain = "ad.kinemathek.de"
+profile_name = "kinemathek"
 try:
     logonserver = os.environ["LOGONSERVER"]
 except KeyError:
@@ -83,7 +84,7 @@ elif args.verbose > 1:
 # okay, business. thunderbird …
 log.debug(u"… thunderbird")
 tbp = kmt.moz_profiles.tbprofile(args.path_settings, args.path_tools,
-  args.moz_tb_settings, args.domain_name, ldap_settings)
+  args.moz_tb_settings, args.domain_name, ldap_settings, profile_name)
 if args.moz_tb_force_new:
     tbp.rename_profile()
 if not tbp.exists():
@@ -97,7 +98,7 @@ tbp.done()
 # firefox …
 log.debug(u"… firefox")
 ffp = kmt.moz_profiles.ffprofile(args.path_settings, args.path_tools,
-  args.moz_ff_settings, args.domain_name, ldap_settings)
+  args.moz_ff_settings, args.domain_name, ldap_settings, profile_name)
 if args.moz_ff_force_new:
     ffp.rename_profile()
 if not ffp.exists():

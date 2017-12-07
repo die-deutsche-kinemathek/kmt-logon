@@ -4,7 +4,7 @@
 """ macht die beknackte windows-konsole halbwegs unicode-fähig
     von http://stackoverflow.com/questions/878972/windows-cmd-encoding-change-causes-python-crash/3259271#3259271 """
 
-import sys, logging, tempfile
+import sys, logging, tempfile, ConfigParser
 
 def fix_cmd_unicode():
     if sys.platform == "win32":
@@ -160,40 +160,6 @@ def fix_cmd_unicode():
             _complain("exception %r while fixing up sys.stdout and sys.stderr" % (e,))
 
 
-        # While we're at it, let's unmangle the command-line arguments:
-
-        # This works around <http://bugs.python.org/issue2128>.
-        # GetCommandLineW = WINFUNCTYPE(LPWSTR)(("GetCommandLineW", windll.kernel32))
-        # CommandLineToArgvW = WINFUNCTYPE(POINTER(LPWSTR), LPCWSTR, POINTER(c_int))(("CommandLineToArgvW", windll.shell32))
-
-        # argc = c_int(0)
-        # argv_unicode = CommandLineToArgvW(GetCommandLineW(), byref(argc))
-
-        # argv = [argv_unicode[i].encode('utf-8') for i in xrange(0, argc.value)]
-
-        # if not hasattr(sys, 'frozen'):
-        #     # If this is an executable produced by py2exe or bbfreeze, then it will
-        #     # have been invoked directly. Otherwise, unicode_argv[0] is the Python
-        #     # interpreter, so skip that.
-        #     argv = argv[1:]
-
-        #     # Also skip option arguments to the Python interpreter.
-        #     while len(argv) > 0:
-        #         arg = argv[0]
-        #         if not arg.startswith(u"-") or arg == u"-":
-        #             break
-        #         argv = argv[1:]
-        #         if arg == u'-m':
-        #             # sys.argv[0] should really be the absolute path of the module source,
-        #             # but never mind
-        #             break
-        #         if arg == u'-c':
-        #             argv[0] = u'-c'
-        #             break
-
-        # # if you like:
-        # sys.argv = argv
-
 def setup_logger(fn="", log_instance="kmt-logon"):
     """ logging auf der console und in ein logfile, argument: name des
         logfiles """
@@ -221,3 +187,24 @@ def setup_logger(fn="", log_instance="kmt-logon"):
     logger.setLevel(logging.INFO)
     return logger
 
+class kmt_configparser(ConfigParser.ConfigParser):
+    """ das mozilla-zeugs mag " = " sowas in den profile.ini-dateien nicht.
+        das hier ist der fix für python2, inspiriert von https://stackoverflow.com/questions/28090568/configparser-without-whitespace-surrounding-operator
+        """
+    def write(self, fp):
+        if self._defaults:
+            fp.write("[%s]\n" % DEFAULTSECT)
+            for (key, value) in self._defaults.items():
+                fp.write("%s = %s\n" % (key, str(value).replace('\n', '\n\t')))
+            fp.write("\n")
+        for section in self._sections:
+            fp.write("[%s]\n" % section)
+            for (key, value) in self._sections[section].items():
+                if key == "__name__":
+                    continue
+                if (value is not None) or (self._optcre == self.OPTCRE):
+                    # This is the important departure from ConfigParser for
+                    # what you are looking for
+                    key = "=".join((key, str(value).replace('\n', '\n\t')))
+                fp.write("%s\n" % (key))
+            fp.write("\n")
